@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bunx create-remix@latest . --template remix-run/remix/templates/remix --yes)",
+      "Bash(where bun)",
+      "Bash(curl -fsSL https://bun.sh/install)",
+      "Bash(bash)",
+      "Bash(export BUN_INSTALL=\"$HOME/.bun\")",
+      "Bash(export PATH=\"$BUN_INSTALL/bin:$PATH\")",
+      "Bash(bun --version)",
+      "Bash(bunx create-remix@latest . --yes)",
+      "Bash(echo $PATH)",
+      "Bash(export PATH=\"$HOME/.bun/bin:$PATH\")",
+      "Bash(bun x create-remix@latest . --yes)",
+      "Bash(bun x create-react-router@latest . --yes)"
+    ]
+  }
+}
