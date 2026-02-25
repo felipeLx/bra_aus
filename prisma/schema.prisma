@@ -1,0 +1,161 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────────
+
+enum Role {
+  USER
+  BUSINESS
+  ADMIN
+}
+
+enum CampaignStatus {
+  DRAFT
+  VOTING
+  CLOSED
+  CONFIRMED
+  CANCELLED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+enum SeatClass {
+  ECONOMY
+  BUSINESS
+  FIRST
+}
+
+enum CargoStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ─────────────────────────────────────────────
+// User
+// ─────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String
+  passwordHash  String?
+  role          Role      @default(USER)
+  emailVerified Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  votes         Vote[]
+  bookings      Booking[]
+  cargoRequests CargoRequest[]
+}
+
+// ─────────────────────────────────────────────
+// Campaign (one flight round per semester)
+// ─────────────────────────────────────────────
+
+model Campaign {
+  id            String         @id @default(cuid())
+  title         String         // e.g. "Mid-Year 2025 — Sydney ↔ São Paulo"
+  description   String?
+  route         String         // e.g. "SYD-GRU"
+  status        CampaignStatus @default(DRAFT)
+  votingEndsAt  DateTime
+  confirmedDate DateTime?      // set by admin after voting closes
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  candidateDates CandidateDate[]
+  votes          Vote[]
+  bookings       Booking[]
+  cargoRequests  CargoRequest[]
+}
+
+// ─────────────────────────────────────────────
+// Candidate dates users can vote on
+// ─────────────────────────────────────────────
+
+model CandidateDate {
+  id         String   @id @default(cuid())
+  campaignId String
+  date       DateTime // just the date part matters
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  votes    Vote[]
+}
+
+// ─────────────────────────────────────────────
+// Vote — one per user per campaign
+// ─────────────────────────────────────────────
+
+model Vote {
+  id              String   @id @default(cuid())
+  userId          String
+  campaignId      String
+  candidateDateId String
+  createdAt       DateTime @default(now())
+
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaign      Campaign      @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  candidateDate CandidateDate @relation(fields: [candidateDateId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, campaignId]) // one vote per user per campaign
+}
+
+// ─────────────────────────────────────────────
+// Booking — passenger reservation
+// ─────────────────────────────────────────────
+
+model Booking {
+  id                  String        @id @default(cuid())
+  userId              String
+  campaignId          String
+  status              BookingStatus @default(PENDING)
+  passengerCount      Int           @default(1)
+  seatClass           SeatClass     @default(ECONOMY)
+  passportNumber      String?
+  passportExpiry      DateTime?
+  specialRequirements String?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, campaignId]) // one booking per user per campaign
+}
+
+// ─────────────────────────────────────────────
+// Cargo request — for businesses
+// ─────────────────────────────────────────────
+
+model CargoRequest {
+  id           String      @id @default(cuid())
+  userId       String
+  campaignId   String
+  businessName String
+  description  String
+  weightKg     Float
+  volumeM3     Float?
+  cargoType    String
+  status       CargoStatus @default(PENDING)
+  adminNotes   String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+}
