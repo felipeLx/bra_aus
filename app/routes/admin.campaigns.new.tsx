@@ -1,7 +1,6 @@
-"use client";
-
-import { data, redirect, Form, Link, useActionData, useNavigation } from "react-router";
+import { data, redirect, Form, Link, useActionData, useLoaderData, useNavigation } from "react-router";
 import { useState } from "react";
+import { Navbar } from "~/components/Navbar";
 import { db } from "~/db.server";
 import { requireAdmin } from "~/session.server";
 import type { Route } from "./+types/admin.campaigns.new";
@@ -11,8 +10,8 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireAdmin(request);
-  return null;
+  const user = await requireAdmin(request);
+  return { user };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -55,6 +54,7 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export default function AdminNewCampaignPage() {
+  const { user } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
@@ -75,12 +75,7 @@ export default function AdminNewCampaignPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
-        <Link to="/campaigns" className="text-sm text-gray-500 hover:text-gray-700">
-          ← Back to campaigns
-        </Link>
-        <span className="text-sm font-medium text-gray-400">Admin</span>
-      </nav>
+      <Navbar user={user} />
 
       <main className="max-w-2xl mx-auto px-6 py-10">
         <h1 className="text-2xl font-bold text-gray-900 mb-8">Create new campaign</h1>

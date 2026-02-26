@@ -1,4 +1,5 @@
 import { data, redirect, Form, Link, useLoaderData, useNavigation } from "react-router";
+import { Navbar } from "~/components/Navbar";
 import { db } from "~/db.server";
 import { calculatePricing, formatAud } from "~/lib/pricing";
 import { requireAdmin } from "~/session.server";
@@ -9,7 +10,7 @@ export function meta({ data }: Route.MetaArgs) {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  await requireAdmin(request);
+  const user = await requireAdmin(request);
 
   const campaign = await db.campaign.findUnique({
     where: { id: params.id },
@@ -32,7 +33,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   if (!campaign) throw new Response("Not found", { status: 404 });
 
   const pricing = calculatePricing(campaign);
-  return { campaign, pricing };
+  return { user, campaign, pricing };
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
@@ -100,7 +101,7 @@ function formatDate(d: string | Date) {
 }
 
 export default function AdminCampaignPage() {
-  const { campaign, pricing } = useLoaderData<typeof loader>();
+  const { user, campaign, pricing } = useLoaderData<typeof loader>();
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
 
@@ -111,15 +112,7 @@ export default function AdminCampaignPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
-        <Link to={`/campaigns/${campaign.id}`} className="text-sm text-gray-500 hover:text-gray-700">
-          ← Public view
-        </Link>
-        <span className="text-sm font-semibold text-gray-800">Admin · Campaign management</span>
-        <Link to="/campaigns" className="text-sm text-gray-500 hover:text-gray-700">
-          All campaigns
-        </Link>
-      </nav>
+      <Navbar user={user} />
 
       <main className="max-w-4xl mx-auto px-6 py-10 space-y-8">
         <div>

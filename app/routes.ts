@@ -12,7 +12,11 @@ export default [
   route("campaigns", "routes/campaigns.tsx"),
   route("campaigns/:id", "routes/campaigns.$id.tsx"),
 
+  // User dashboard
+  route("dashboard", "routes/dashboard.tsx"),
+
   // Admin
+  route("admin", "routes/admin._index.tsx"),
   route("admin/campaigns/new", "routes/admin.campaigns.new.tsx"),
   route("admin/campaigns/:id", "routes/admin.campaigns.$id.tsx"),
 ] satisfies RouteConfig;

@@ -46,30 +46,53 @@ export default function App() {
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
-  let message = "Oops!";
-  let details = "An unexpected error occurred.";
+  let status = 500;
+  let title = "Something went wrong";
+  let message = "An unexpected error occurred. Please try again.";
   let stack: string | undefined;
 
   if (isRouteErrorResponse(error)) {
-    message = error.status === 404 ? "404" : "Error";
-    details =
-      error.status === 404
-        ? "The requested page could not be found."
-        : error.statusText || details;
-  } else if (import.meta.env.DEV && error && error instanceof Error) {
-    details = error.message;
+    status = error.status;
+    if (error.status === 404) {
+      title = "Page not found";
+      message = "The page you're looking for doesn't exist or has been moved.";
+    } else if (error.status === 403) {
+      title = "Access denied";
+      message = "You don't have permission to view this page.";
+    } else {
+      message = error.statusText || message;
+    }
+  } else if (import.meta.env.DEV && error instanceof Error) {
+    message = error.message;
     stack = error.stack;
   }
 
   return (
-    <main className="pt-16 p-4 container mx-auto">
-      <h1>{message}</h1>
-      <p>{details}</p>
-      {stack && (
-        <pre className="w-full p-4 overflow-x-auto">
-          <code>{stack}</code>
-        </pre>
-      )}
+    <main className="min-h-screen bg-gray-50 flex items-center justify-center px-6">
+      <div className="text-center max-w-md">
+        <p className="text-7xl font-extrabold text-blue-600 mb-4">{status}</p>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">{title}</h1>
+        <p className="text-gray-500 mb-8">{message}</p>
+        <div className="flex gap-3 justify-center">
+          <a
+            href="/"
+            className="px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors"
+          >
+            Go home
+          </a>
+          <a
+            href="/campaigns"
+            className="px-5 py-2.5 text-sm font-semibold text-gray-700 bg-white border border-gray-200 hover:border-gray-300 rounded-xl transition-colors"
+          >
+            View campaigns
+          </a>
+        </div>
+        {stack && (
+          <pre className="mt-8 text-left text-xs bg-gray-900 text-gray-300 p-4 rounded-xl overflow-x-auto">
+            <code>{stack}</code>
+          </pre>
+        )}
+      </div>
     </main>
   );
 }

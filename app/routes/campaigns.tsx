@@ -1,4 +1,5 @@
 import { Link, useLoaderData } from "react-router";
+import { Navbar } from "~/components/Navbar";
 import { db } from "~/db.server";
 import { calculatePricing, formatAud } from "~/lib/pricing";
 import { getUser } from "~/session.server";
@@ -37,29 +38,7 @@ export default function CampaignsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Nav */}
-      <nav className="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
-        <Link to="/" className="text-xl font-bold text-gray-900">
-          Rio-Aus Flights ✈️
-        </Link>
-        <div className="flex items-center gap-4">
-          {user?.role === "ADMIN" && (
-            <Link
-              to="/admin/campaigns/new"
-              className="text-sm font-medium text-white bg-gray-800 hover:bg-gray-900 px-4 py-2 rounded-lg"
-            >
-              + New campaign
-            </Link>
-          )}
-          {user ? (
-            <span className="text-sm text-gray-600">{user.name}</span>
-          ) : (
-            <Link to="/login" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
-              Sign in
-            </Link>
-          )}
-        </div>
-      </nav>
+      <Navbar user={user} />
 
       <main className="max-w-4xl mx-auto px-6 py-12">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Open campaigns</h1>
