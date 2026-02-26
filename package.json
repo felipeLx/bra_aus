@@ -6,7 +6,10 @@
     "build": "react-router build",
     "dev": "react-router dev",
     "start": "react-router-serve ./build/server/index.js",
-    "typecheck": "react-router typegen && tsc"
+    "typecheck": "react-router typegen && tsc",
+    "db:seed": "bun prisma/seed.ts",
+    "db:migrate": "bun prisma migrate dev",
+    "db:studio": "bun prisma studio"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.4.1",

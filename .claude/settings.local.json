@@ -23,7 +23,9 @@
       "Bash(bun add -d @types/pg)",
       "Bash(bun add remix-auth remix-auth-form bcryptjs)",
       "Bash(bun add -d @types/bcryptjs)",
-      "Bash(bun run typecheck)"
+      "Bash(bun run typecheck)",
+      "Bash(bun run db:seed)",
+      "Bash(git commit -m \"Phase 3: Core features — campaigns, voting, booking, cargo, pricing:*)"
     ]
   }
 }
