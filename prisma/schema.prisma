@@ -5,7 +5,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 // ─────────────────────────────────────────────
@@ -75,8 +74,21 @@ model Campaign {
   status        CampaignStatus @default(DRAFT)
   votingEndsAt  DateTime
   confirmedDate DateTime?      // set by admin after voting closes
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+
+  // ── Pricing ──────────────────────────────────────────────
+  // totalCharterCostAud: the full cost to charter the plane (set by admin)
+  // maxPassengers: total seats available on the aircraft
+  // cargoRatePerKg: how much each kg of cargo costs (businesses pay this)
+  //
+  // Per-person price (live, calculated at query time):
+  //   passengerCost = totalCharterCostAud - (sum of approved cargo kg * cargoRatePerKg)
+  //   pricePerPerson = passengerCost / totalConfirmedPassengers
+  totalCharterCostAud Float?
+  maxPassengers       Int?
+  cargoRatePerKg      Float?   // AUD per kg
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   candidateDates CandidateDate[]
   votes          Vote[]

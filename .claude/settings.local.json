@@ -17,7 +17,13 @@
       "Bash(bun add -d prisma)",
       "Bash(git init)",
       "Bash(git add .)",
-      "Bash(git commit -m \"Initial commit: React Router v7 + Tailwind v4 + Prisma scaffold:*)"
+      "Bash(git commit -m \"Initial commit: React Router v7 + Tailwind v4 + Prisma scaffold:*)",
+      "Bash(bun prisma migrate dev --name init)",
+      "Bash(bun add @prisma/adapter-pg pg)",
+      "Bash(bun add -d @types/pg)",
+      "Bash(bun add remix-auth remix-auth-form bcryptjs)",
+      "Bash(bun add -d @types/bcryptjs)",
+      "Bash(bun run typecheck)"
     ]
   }
 }
