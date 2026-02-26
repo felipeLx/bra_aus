@@ -1,6 +1,7 @@
 import { data, redirect, Form, Link, useLoaderData, useNavigation } from "react-router";
 import { Navbar } from "~/components/Navbar";
 import { db } from "~/db.server";
+import { sendCargoApprovedEmail, sendCargoRejectedEmail, sendFlightConfirmedEmail } from "~/lib/email.server";
 import { calculatePricing, formatAud } from "~/lib/pricing";
 import { requireAdmin } from "~/session.server";
 import type { Route } from "./+types/admin.campaigns.$id";
@@ -57,15 +58,51 @@ export async function action({ request, params }: Route.ActionArgs) {
     if (isNaN(confirmedDate.getTime())) {
       return data({ error: "Select a valid date to confirm." }, { status: 400 });
     }
+
+    const campaign = await db.campaign.findUnique({
+      where: { id: params.id },
+      include: {
+        bookings: { select: { passengerCount: true, status: true } },
+        cargoRequests: { select: { weightKg: true, status: true } },
+      },
+    });
+
     await db.campaign.update({
       where: { id: params.id },
       data: { status: "CONFIRMED", confirmedDate },
     });
-    // Confirm all pending bookings
-    await db.booking.updateMany({
-      where: { campaignId: params.id, status: "PENDING" },
-      data: { status: "CONFIRMED" },
-    });
+
+    // Confirm all pending bookings and fetch passengers for emails
+    const [updatedBookings] = await Promise.all([
+      db.booking.findMany({
+        where: { campaignId: params.id, status: "PENDING" },
+        include: { user: { select: { email: true, name: true } } },
+      }),
+      db.booking.updateMany({
+        where: { campaignId: params.id, status: "PENDING" },
+        data: { status: "CONFIRMED" },
+      }),
+    ]);
+
+    // Fire-and-forget emails to all confirmed passengers
+    if (campaign) {
+      const pricing = calculatePricing(campaign);
+      const dateStr = confirmedDate.toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "long", year: "numeric" });
+      Promise.allSettled(
+        updatedBookings.map((b) =>
+          sendFlightConfirmedEmail({
+            to: b.user.email,
+            name: b.user.name,
+            campaignTitle: campaign.title,
+            route: campaign.route,
+            confirmedDate: dateStr,
+            pricePerPerson: pricing.pricePerPerson != null ? formatAud(pricing.pricePerPerson) : null,
+            campaignId: params.id,
+          })
+        )
+      );
+    }
+
     return redirect(`/admin/campaigns/${params.id}`);
   }
 
@@ -80,14 +117,45 @@ export async function action({ request, params }: Route.ActionArgs) {
 
   if (intent === "approve-cargo") {
     const cargoId = String(formData.get("cargoId"));
-    await db.cargoRequest.update({ where: { id: cargoId }, data: { status: "APPROVED" } });
+    const cargo = await db.cargoRequest.update({
+      where: { id: cargoId },
+      data: { status: "APPROVED" },
+      include: {
+        user: { select: { email: true } },
+        campaign: { select: { title: true, cargoRatePerKg: true } },
+      },
+    });
+    sendCargoApprovedEmail({
+      to: cargo.user.email,
+      businessName: cargo.businessName,
+      campaignTitle: cargo.campaign.title,
+      weightKg: cargo.weightKg,
+      totalCost: cargo.campaign.cargoRatePerKg != null
+        ? formatAud(cargo.weightKg * cargo.campaign.cargoRatePerKg)
+        : `${cargo.weightKg}kg`,
+      campaignId: params.id,
+    });
     return redirect(`/admin/campaigns/${params.id}#cargo`);
   }
 
   if (intent === "reject-cargo") {
     const cargoId = String(formData.get("cargoId"));
     const adminNotes = String(formData.get("adminNotes") ?? "").trim() || null;
-    await db.cargoRequest.update({ where: { id: cargoId }, data: { status: "REJECTED", adminNotes } });
+    const cargo = await db.cargoRequest.update({
+      where: { id: cargoId },
+      data: { status: "REJECTED", adminNotes },
+      include: {
+        user: { select: { email: true } },
+        campaign: { select: { title: true } },
+      },
+    });
+    sendCargoRejectedEmail({
+      to: cargo.user.email,
+      businessName: cargo.businessName,
+      campaignTitle: cargo.campaign.title,
+      reason: adminNotes,
+      campaignId: params.id,
+    });
     return redirect(`/admin/campaigns/${params.id}#cargo`);
   }
 

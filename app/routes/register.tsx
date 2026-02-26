@@ -1,5 +1,6 @@
 import { data, redirect, Form, Link, useActionData } from "react-router";
 import { registerUser } from "~/auth.server";
+import { sendWelcomeEmail } from "~/lib/email.server";
 import { createUserSession, getUserId } from "~/session.server";
 import type { Route } from "./+types/register";
 
@@ -28,6 +29,9 @@ export async function action({ request }: Route.ActionArgs) {
   if ("error" in result) {
     return data({ errors: { [result.error.field]: result.error.message } }, { status: 400 });
   }
+
+  // Fire-and-forget — never blocks the redirect
+  sendWelcomeEmail({ to: email, name });
 
   return createUserSession({ request, userId: result.user.id, redirectTo: "/" });
 }

@@ -1,6 +1,7 @@
 import { data, redirect, Form, Link, useLoaderData, useActionData, useNavigation } from "react-router";
 import { Navbar } from "~/components/Navbar";
 import { db } from "~/db.server";
+import { sendBookingReceivedEmail, sendVoteConfirmedEmail } from "~/lib/email.server";
 import { calculatePricing, formatAud } from "~/lib/pricing";
 import { getUser, requireUserId } from "~/session.server";
 import type { Route } from "./+types/campaigns.$id";
@@ -68,11 +69,25 @@ export async function action({ request, params }: Route.ActionArgs) {
       return data({ error: "Voting is not open for this campaign." }, { status: 400 });
     }
 
+    const candidateDate = await db.candidateDate.findUnique({ where: { id: candidateDateId } });
+
     await db.vote.upsert({
       where: { userId_campaignId: { userId, campaignId: params.id } },
       create: { userId, campaignId: params.id, candidateDateId },
       update: { candidateDateId },
     });
+
+    // Email — fire-and-forget
+    const voter = await db.user.findUnique({ where: { id: userId }, select: { email: true, name: true } });
+    if (voter && candidateDate) {
+      sendVoteConfirmedEmail({
+        to: voter.email,
+        name: voter.name,
+        campaignTitle: campaign.title,
+        dateVoted: new Date(candidateDate.date).toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "long", year: "numeric" }),
+        campaignId: params.id,
+      });
+    }
 
     return redirect(`/campaigns/${params.id}`);
   }
@@ -83,11 +98,39 @@ export async function action({ request, params }: Route.ActionArgs) {
     const seatClass = String(formData.get("seatClass") ?? "ECONOMY") as "ECONOMY" | "BUSINESS" | "FIRST";
     const specialRequirements = String(formData.get("specialRequirements") ?? "").trim() || null;
 
+    const isNewBooking = !(await db.booking.findUnique({
+      where: { userId_campaignId: { userId, campaignId: params.id } },
+      select: { id: true },
+    }));
+
     await db.booking.upsert({
       where: { userId_campaignId: { userId, campaignId: params.id } },
       create: { userId, campaignId: params.id, passengerCount, seatClass, specialRequirements },
       update: { passengerCount, seatClass, specialRequirements },
     });
+
+    // Email only on first booking, not updates — fire-and-forget
+    if (isNewBooking) {
+      const [booker, campaignFull] = await Promise.all([
+        db.user.findUnique({ where: { id: userId }, select: { email: true, name: true } }),
+        db.campaign.findUnique({
+          where: { id: params.id },
+          include: { bookings: { select: { passengerCount: true, status: true } }, cargoRequests: { select: { weightKg: true, status: true } } },
+        }),
+      ]);
+      if (booker && campaignFull) {
+        const pricing = calculatePricing(campaignFull);
+        sendBookingReceivedEmail({
+          to: booker.email,
+          name: booker.name,
+          campaignTitle: campaignFull.title,
+          passengerCount,
+          seatClass,
+          currentPricePerPerson: pricing.pricePerPerson != null ? formatAud(pricing.pricePerPerson) : null,
+          campaignId: params.id,
+        });
+      }
+    }
 
     return redirect(`/campaigns/${params.id}#booking`);
   }
