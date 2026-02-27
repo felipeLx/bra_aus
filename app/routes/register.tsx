@@ -1,4 +1,5 @@
 import { data, redirect, Form, Link, useActionData } from "react-router";
+import { useTranslation } from "react-i18next";
 import { registerUser } from "~/auth.server";
 import { sendWelcomeEmail } from "~/lib/email.server";
 import { createUserSession, getUserId } from "~/session.server";
@@ -36,18 +37,21 @@ export async function action({ request }: Route.ActionArgs) {
   return createUserSession({ request, userId: result.user.id, redirectTo: "/" });
 }
 
+export const handle = { i18n: "translation" };
+
 export default function RegisterPage() {
   const actionData = useActionData<typeof action>();
+  const { t } = useTranslation();
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900">Create your account</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{t("register.title")}</h1>
           <p className="mt-2 text-sm text-gray-600">
-            Already have an account?{" "}
+            {t("register.haveAccount")}{" "}
             <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
-              Sign in
+              {t("register.signIn")}
             </Link>
           </p>
         </div>
@@ -56,7 +60,7 @@ export default function RegisterPage() {
           <div className="space-y-4">
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                Full name
+                {t("register.fullName")}
               </label>
               <input
                 id="name"
@@ -73,7 +77,7 @@ export default function RegisterPage() {
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email
+                {t("register.email")}
               </label>
               <input
                 id="email"
@@ -90,7 +94,7 @@ export default function RegisterPage() {
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
+                {t("register.password")}
               </label>
               <input
                 id="password"
@@ -108,7 +112,7 @@ export default function RegisterPage() {
 
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                Confirm password
+                {t("register.confirmPassword")}
               </label>
               <input
                 id="confirmPassword"
@@ -125,31 +129,20 @@ export default function RegisterPage() {
 
             {/* Account type */}
             <div>
-              <p className="block text-sm font-medium text-gray-700 mb-2">Account type</p>
+              <p className="block text-sm font-medium text-gray-700 mb-2">{t("register.accountType")}</p>
               <div className="grid grid-cols-2 gap-3">
                 <label className="relative flex cursor-pointer rounded-lg border border-gray-300 bg-white p-4 shadow-sm focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 hover:border-gray-400">
-                  <input
-                    type="radio"
-                    name="role"
-                    value="USER"
-                    defaultChecked
-                    className="sr-only"
-                  />
+                  <input type="radio" name="role" value="USER" defaultChecked className="sr-only" />
                   <span className="flex flex-1 flex-col">
-                    <span className="block text-sm font-medium text-gray-900">Passenger</span>
-                    <span className="mt-1 block text-xs text-gray-500">Book a seat on the flight</span>
+                    <span className="block text-sm font-medium text-gray-900">{t("register.passengerLabel")}</span>
+                    <span className="mt-1 block text-xs text-gray-500">{t("register.passengerDesc")}</span>
                   </span>
                 </label>
                 <label className="relative flex cursor-pointer rounded-lg border border-gray-300 bg-white p-4 shadow-sm focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 hover:border-gray-400">
-                  <input
-                    type="radio"
-                    name="role"
-                    value="BUSINESS"
-                    className="sr-only"
-                  />
+                  <input type="radio" name="role" value="BUSINESS" className="sr-only" />
                   <span className="flex flex-1 flex-col">
-                    <span className="block text-sm font-medium text-gray-900">Business</span>
-                    <span className="mt-1 block text-xs text-gray-500">Ship cargo on the flight</span>
+                    <span className="block text-sm font-medium text-gray-900">{t("register.businessLabel")}</span>
+                    <span className="mt-1 block text-xs text-gray-500">{t("register.businessDesc")}</span>
                   </span>
                 </label>
               </div>
@@ -160,7 +153,7 @@ export default function RegisterPage() {
             type="submit"
             className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
-            Create account
+            {t("register.createAccount")}
           </button>
         </Form>
       </div>

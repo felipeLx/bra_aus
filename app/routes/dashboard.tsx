@@ -1,4 +1,5 @@
 import { Link, useLoaderData } from "react-router";
+import { useTranslation } from "react-i18next";
 import { Navbar } from "~/components/Navbar";
 import { db } from "~/db.server";
 import { calculatePricing, formatAud } from "~/lib/pricing";
@@ -45,6 +46,8 @@ export async function loader({ request }: Route.LoaderArgs) {
   return { user, bookings, votes, cargoRequests };
 }
 
+export const handle = { i18n: "translation" };
+
 function formatDate(d: string | Date) {
   return new Date(d).toLocaleDateString("en-AU", {
     day: "numeric", month: "short", year: "numeric",
@@ -52,23 +55,36 @@ function formatDate(d: string | Date) {
 }
 
 const BOOKING_STATUS_STYLE: Record<string, string> = {
-  PENDING: "bg-yellow-100 text-yellow-800",
+  PENDING:   "bg-yellow-100 text-yellow-800",
   CONFIRMED: "bg-green-100 text-green-800",
   CANCELLED: "bg-red-100 text-red-700",
 };
 
 const CARGO_STATUS_STYLE: Record<string, string> = {
-  PENDING: "bg-yellow-100 text-yellow-800",
+  PENDING:  "bg-yellow-100 text-yellow-800",
   APPROVED: "bg-green-100 text-green-800",
   REJECTED: "bg-red-100 text-red-700",
 };
 
 export default function DashboardPage() {
   const { user, bookings, votes, cargoRequests } = useLoaderData<typeof loader>();
+  const { t } = useTranslation();
 
   const totalPassengers = bookings
     .filter((b) => b.status !== "CANCELLED")
     .reduce((s, b) => s + b.passengerCount, 0);
+
+  const bookingStatusLabel: Record<string, string> = {
+    PENDING:   t("dashboard.statusPending"),
+    CONFIRMED: t("dashboard.statusConfirmed"),
+    CANCELLED: t("dashboard.statusCancelled"),
+  };
+
+  const cargoStatusLabel: Record<string, string> = {
+    PENDING:  t("dashboard.statusPending"),
+    APPROVED: t("dashboard.statusApproved"),
+    REJECTED: t("dashboard.statusRejected"),
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -78,35 +94,36 @@ export default function DashboardPage() {
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold text-gray-900">
-            Hey, {user.name.split(" ")[0]} 👋
+            {t("dashboard.greeting", { name: user.name.split(" ")[0] })}
           </h1>
           <p className="text-gray-400 mt-1">
             {totalPassengers > 0
-              ? `You have ${totalPassengers} seat${totalPassengers !== 1 ? "s" : ""} reserved.`
-              : "No bookings yet. Find an open campaign and join!"}
+              ? t("dashboard.seatsSummary", { count: totalPassengers })
+              : t("dashboard.noBookingsYet")}
           </p>
         </div>
 
         {/* ── My Bookings ─────────────────────────────────────── */}
         <section>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900">My bookings</h2>
+            <h2 className="text-xl font-bold text-gray-900">{t("dashboard.myBookings")}</h2>
             <Link to="/campaigns" className="text-sm text-blue-600 hover:text-blue-700">
-              Browse campaigns →
+              {t("dashboard.browseCampaigns")}
             </Link>
           </div>
 
           {bookings.length === 0 ? (
             <EmptyState
               icon="✈️"
-              title="No bookings yet"
-              desc="Join an open campaign to reserve your seat."
-              cta={{ label: "View campaigns", to: "/campaigns" }}
+              title={t("dashboard.noBookingsTitle")}
+              desc={t("dashboard.noBookingsDesc")}
+              cta={{ label: t("dashboard.viewCampaigns"), to: "/campaigns" }}
             />
           ) : (
             <div className="space-y-3">
               {bookings.map((b) => {
                 const pricing = calculatePricing(b.campaign);
+                const seatLabel = b.seatClass.charAt(0) + b.seatClass.slice(1).toLowerCase();
                 return (
                   <Link
                     key={b.id}
@@ -116,8 +133,7 @@ export default function DashboardPage() {
                     <div>
                       <p className="font-semibold text-gray-900">{b.campaign.title}</p>
                       <p className="text-sm text-gray-400 mt-0.5">
-                        {b.passengerCount} seat{b.passengerCount !== 1 ? "s" : ""} ·{" "}
-                        {b.seatClass.charAt(0) + b.seatClass.slice(1).toLowerCase()} class
+                        {t("dashboard.seat", { count: b.passengerCount })} · {seatLabel}
                       </p>
                     </div>
                     <div className="text-right">
@@ -129,7 +145,7 @@ export default function DashboardPage() {
                       <span
                         className={`text-xs font-medium px-2 py-0.5 rounded-full ${BOOKING_STATUS_STYLE[b.status] ?? ""}`}
                       >
-                        {b.status}
+                        {bookingStatusLabel[b.status] ?? b.status}
                       </span>
                     </div>
                   </Link>
@@ -141,14 +157,14 @@ export default function DashboardPage() {
 
         {/* ── My Votes ────────────────────────────────────────── */}
         <section>
-          <h2 className="text-xl font-bold text-gray-900 mb-4">My votes</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-4">{t("dashboard.myVotes")}</h2>
 
           {votes.length === 0 ? (
             <EmptyState
               icon="🗳️"
-              title="No votes yet"
-              desc="Open a campaign and vote for your preferred date."
-              cta={{ label: "View campaigns", to: "/campaigns" }}
+              title={t("dashboard.noVotesTitle")}
+              desc={t("dashboard.noVotesDesc")}
+              cta={{ label: t("dashboard.viewCampaigns"), to: "/campaigns" }}
             />
           ) : (
             <div className="space-y-3">
@@ -161,10 +177,7 @@ export default function DashboardPage() {
                   <div>
                     <p className="font-semibold text-gray-900">{v.campaign.title}</p>
                     <p className="text-sm text-gray-400 mt-0.5">
-                      Voted for{" "}
-                      <span className="font-medium text-gray-600">
-                        {formatDate(v.candidateDate.date)}
-                      </span>
+                      {t("dashboard.votedFor", { date: formatDate(v.candidateDate.date) })}
                     </p>
                   </div>
                   <CampaignStatusBadge status={v.campaign.status} />
@@ -177,14 +190,14 @@ export default function DashboardPage() {
         {/* ── My Cargo (business only) ─────────────────────────── */}
         {(user.role === "BUSINESS" || cargoRequests.length > 0) && (
           <section>
-            <h2 className="text-xl font-bold text-gray-900 mb-4">My cargo requests</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-4">{t("dashboard.myCargo")}</h2>
 
             {cargoRequests.length === 0 ? (
               <EmptyState
                 icon="📦"
-                title="No cargo requests yet"
-                desc="Open a campaign page and submit your cargo details."
-                cta={{ label: "View campaigns", to: "/campaigns" }}
+                title={t("dashboard.noCargoTitle")}
+                desc={t("dashboard.noCargoDesc")}
+                cta={{ label: t("dashboard.viewCampaigns"), to: "/campaigns" }}
               />
             ) : (
               <div className="space-y-3">
@@ -214,7 +227,7 @@ export default function DashboardPage() {
                         <span
                           className={`text-xs font-medium px-2 py-0.5 rounded-full ${CARGO_STATUS_STYLE[c.status] ?? ""}`}
                         >
-                          {c.status}
+                          {cargoStatusLabel[c.status] ?? c.status}
                         </span>
                       </div>
                     </Link>
@@ -256,17 +269,18 @@ function EmptyState({
 }
 
 function CampaignStatusBadge({ status }: { status: string }) {
+  const { t } = useTranslation();
   const map: Record<string, string> = {
-    VOTING: "bg-green-100 text-green-800",
-    CLOSED: "bg-yellow-100 text-yellow-800",
+    VOTING:    "bg-green-100 text-green-800",
+    CLOSED:    "bg-yellow-100 text-yellow-800",
     CONFIRMED: "bg-blue-100 text-blue-800",
     CANCELLED: "bg-red-100 text-red-700",
   };
   const labels: Record<string, string> = {
-    VOTING: "Voting open",
-    CLOSED: "Voting closed",
-    CONFIRMED: "Confirmed",
-    CANCELLED: "Cancelled",
+    VOTING:    t("dashboard.campaignVoting"),
+    CLOSED:    t("dashboard.campaignClosed"),
+    CONFIRMED: t("dashboard.campaignConfirmed"),
+    CANCELLED: t("dashboard.campaignCancelled"),
   };
   return (
     <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${map[status] ?? "bg-gray-100 text-gray-600"}`}>

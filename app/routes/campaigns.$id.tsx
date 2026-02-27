@@ -1,4 +1,5 @@
 import { data, redirect, Form, Link, useLoaderData, useActionData, useNavigation } from "react-router";
+import { useTranslation } from "react-i18next";
 import { Navbar } from "~/components/Navbar";
 import { db } from "~/db.server";
 import { sendBookingReceivedEmail, sendVoteConfirmedEmail } from "~/lib/email.server";
@@ -157,6 +158,8 @@ export async function action({ request, params }: Route.ActionArgs) {
   return data({ error: "Unknown action." }, { status: 400 });
 }
 
+export const handle = { i18n: "translation" };
+
 // ─── UI helpers ────────────────────────────────────────────────
 
 function formatDate(d: string | Date) {
@@ -164,44 +167,52 @@ function formatDate(d: string | Date) {
 }
 
 function PricingCard({ pricing }: { pricing: ReturnType<typeof calculatePricing> }) {
+  const { t } = useTranslation();
   return (
     <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl p-6 text-white">
-      <p className="text-blue-200 text-sm font-medium uppercase tracking-wide mb-1">Live price estimate</p>
+      <p className="text-blue-200 text-sm font-medium uppercase tracking-wide mb-1">
+        {t("campaign.pricingLabel")}
+      </p>
 
       {pricing.pricePerPerson != null ? (
         <p className="text-5xl font-bold mb-1">{formatAud(pricing.pricePerPerson)}</p>
       ) : (
-        <p className="text-3xl font-bold mb-1 text-blue-200">No bookings yet</p>
+        <p className="text-3xl font-bold mb-1 text-blue-200">{t("campaign.pricingNoBookings")}</p>
       )}
-      <p className="text-blue-200 text-sm mb-6">per person · updates as more people join</p>
+      <p className="text-blue-200 text-sm mb-6">{t("campaign.pricingPerPerson")}</p>
 
       <div className="grid grid-cols-2 gap-4 text-sm">
         <div>
-          <p className="text-blue-300">Charter cost</p>
+          <p className="text-blue-300">{t("campaign.pricingCharterCost")}</p>
           <p className="font-semibold">{formatAud(pricing.charterCost)}</p>
         </div>
         {pricing.cargoRevenue > 0 && (
           <div>
-            <p className="text-blue-300">Cargo offset</p>
+            <p className="text-blue-300">{t("campaign.pricingCargoOffset")}</p>
             <p className="font-semibold text-green-300">−{formatAud(pricing.cargoRevenue)}</p>
           </div>
         )}
         <div>
-          <p className="text-blue-300">Passenger pool</p>
+          <p className="text-blue-300">{t("campaign.pricingPassengerPool")}</p>
           <p className="font-semibold">{formatAud(pricing.passengerPool)}</p>
         </div>
         <div>
-          <p className="text-blue-300">Active bookings</p>
-          <p className="font-semibold">{pricing.activePassengers} pax</p>
+          <p className="text-blue-300">{t("campaign.pricingActiveBookings")}</p>
+          <p className="font-semibold">{t("campaign.pricingPax", { n: pricing.activePassengers })}</p>
         </div>
       </div>
 
       {pricing.seatsTotal != null && (
         <div className="mt-5">
           <div className="flex justify-between text-xs text-blue-200 mb-1.5">
-            <span>{pricing.activePassengers} of {pricing.seatsTotal} seats filled</span>
+            <span>
+              {t("campaign.pricingSeatsFilled", {
+                active: pricing.activePassengers,
+                total: pricing.seatsTotal,
+              })}
+            </span>
             {pricing.bestCasePrice != null && (
-              <span>Best case: {formatAud(pricing.bestCasePrice)}/pax</span>
+              <span>{t("campaign.pricingBestCase", { price: formatAud(pricing.bestCasePrice) })}</span>
             )}
           </div>
           <div className="h-2 bg-blue-800 rounded-full overflow-hidden">
@@ -210,12 +221,33 @@ function PricingCard({ pricing }: { pricing: ReturnType<typeof calculatePricing>
               style={{ width: `${Math.min(pricing.seatsFillPercent ?? 0, 100)}%` }}
             />
           </div>
-          <p className="text-xs text-blue-200 mt-1">
-            Invite more people to lower the price for everyone.
-          </p>
+          <p className="text-xs text-blue-200 mt-1">{t("campaign.pricingInvite")}</p>
         </div>
       )}
     </div>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const { t } = useTranslation();
+  const map: Record<string, string> = {
+    VOTING:    "bg-green-100 text-green-800",
+    CLOSED:    "bg-yellow-100 text-yellow-800",
+    CONFIRMED: "bg-blue-100 text-blue-800",
+    CANCELLED: "bg-red-100 text-red-800",
+    DRAFT:     "bg-gray-100 text-gray-600",
+  };
+  const labels: Record<string, string> = {
+    VOTING:    t("campaigns.statusVoting"),
+    CLOSED:    t("campaigns.statusClosed"),
+    CONFIRMED: t("campaigns.statusConfirmed"),
+    CANCELLED: t("campaigns.statusCancelled"),
+    DRAFT:     "Draft",
+  };
+  return (
+    <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${map[status] ?? "bg-gray-100 text-gray-600"}`}>
+      {labels[status] ?? status}
+    </span>
   );
 }
 
@@ -226,6 +258,7 @@ export default function CampaignDetailPage() {
     useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
+  const { t } = useTranslation();
   const isSubmitting = navigation.state === "submitting";
 
   const isVotingOpen = campaign.status === "VOTING";
@@ -247,11 +280,11 @@ export default function CampaignDetailPage() {
             <p className="mt-2 text-gray-500">{campaign.description}</p>
           )}
           <p className="mt-2 text-sm text-gray-400">
-            Voting closes {formatDate(campaign.votingEndsAt)}
+            {t("campaign.votingCloses", { date: formatDate(campaign.votingEndsAt) })}
           </p>
           {campaign.confirmedDate && (
             <p className="mt-1 text-sm font-medium text-green-700">
-              ✓ Flight confirmed for {formatDate(campaign.confirmedDate)}
+              {t("campaign.flightConfirmed", { date: formatDate(campaign.confirmedDate) })}
             </p>
           )}
         </div>
@@ -266,7 +299,7 @@ export default function CampaignDetailPage() {
               to={`/admin/campaigns/${campaign.id}`}
               className="text-sm text-gray-500 underline hover:text-gray-700"
             >
-              Manage this campaign →
+              {t("campaign.manageCampaign")}
             </Link>
           </div>
         )}
@@ -274,18 +307,17 @@ export default function CampaignDetailPage() {
         {/* ── Vote ────────────────────────────────────────────── */}
         <section id="vote">
           <h2 className="text-xl font-bold text-gray-900 mb-4">
-            {isVotingOpen ? "Vote for your preferred date" : "Vote results"}
+            {isVotingOpen ? t("campaign.voteTitle") : t("campaign.voteResults")}
           </h2>
 
           {campaign.candidateDates.length === 0 ? (
-            <p className="text-gray-400">No candidate dates set yet.</p>
+            <p className="text-gray-400">{t("campaign.noDates")}</p>
           ) : (
             <div className="space-y-3">
               {campaign.candidateDates.map((d) => {
                 const isUserVote = userVote?.candidateDateId === d.id;
                 const votePercent = totalVotes > 0 ? (d._count.votes / totalVotes) * 100 : 0;
-                const isLeading =
-                  d._count.votes === maxVotes && d._count.votes > 0;
+                const isLeading = d._count.votes === maxVotes && d._count.votes > 0;
 
                 return (
                   <div
@@ -304,13 +336,13 @@ export default function CampaignDetailPage() {
                         <span className="font-medium text-gray-900">{formatDate(d.date)}</span>
                         {isUserVote && (
                           <span className="text-xs bg-blue-600 text-white px-2 py-0.5 rounded-full">
-                            Your vote
+                            {t("campaign.yourVote")}
                           </span>
                         )}
                       </div>
                       <div className="flex items-center gap-3 shrink-0">
                         <span className="text-sm text-gray-500">
-                          {d._count.votes} vote{d._count.votes !== 1 ? "s" : ""}
+                          {t("campaigns.votes", { count: d._count.votes })}
                         </span>
                         {isVotingOpen && user && !isUserVote && (
                           <Form method="post">
@@ -321,7 +353,7 @@ export default function CampaignDetailPage() {
                               disabled={isSubmitting}
                               className="text-sm font-medium text-blue-600 hover:text-blue-700 border border-blue-300 hover:border-blue-500 px-3 py-1 rounded-lg transition-colors disabled:opacity-50"
                             >
-                              Vote
+                              {t("campaign.vote")}
                             </button>
                           </Form>
                         )}
@@ -330,7 +362,7 @@ export default function CampaignDetailPage() {
                             to="/login"
                             className="text-sm text-blue-600 border border-blue-300 px-3 py-1 rounded-lg"
                           >
-                            Sign in to vote
+                            {t("campaign.signInToVote")}
                           </Link>
                         )}
                       </div>
@@ -346,7 +378,7 @@ export default function CampaignDetailPage() {
                       />
                     </div>
                     <p className="text-xs text-gray-400 mt-1">
-                      {Math.round(votePercent)}% of votes
+                      {t("campaign.percentOfVotes", { pct: Math.round(votePercent) })}
                     </p>
                   </div>
                 );
@@ -359,11 +391,9 @@ export default function CampaignDetailPage() {
         {user && user.role !== "BUSINESS" && (
           <section id="booking" className="bg-white rounded-2xl border border-gray-100 p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-1">
-              {userBooking ? "Update your booking" : "Book your seat"}
+              {userBooking ? t("campaign.bookUpdate") : t("campaign.bookTitle")}
             </h2>
-            <p className="text-sm text-gray-500 mb-5">
-              Your booking is pending until the flight is confirmed by the admin.
-            </p>
+            <p className="text-sm text-gray-500 mb-5">{t("campaign.bookPending")}</p>
 
             {actionData?.error && (
               <p className="mb-4 text-sm text-red-600 bg-red-50 rounded-lg px-4 py-2">
@@ -377,7 +407,7 @@ export default function CampaignDetailPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Number of passengers
+                    {t("campaign.bookPassengers")}
                   </label>
                   <select
                     name="passengerCount"
@@ -386,36 +416,38 @@ export default function CampaignDetailPage() {
                   >
                     {[1, 2, 3, 4, 5, 6].map((n) => (
                       <option key={n} value={n}>
-                        {n} {n === 1 ? "person" : "people"}
+                        {t("campaign.person", { count: n })}
                       </option>
                     ))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Seat class</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {t("campaign.bookClass")}
+                  </label>
                   <select
                     name="seatClass"
                     defaultValue={userBooking?.seatClass ?? "ECONOMY"}
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   >
-                    <option value="ECONOMY">Economy</option>
-                    <option value="BUSINESS">Business</option>
-                    <option value="FIRST">First class</option>
+                    <option value="ECONOMY">{t("campaign.classEconomy")}</option>
+                    <option value="BUSINESS">{t("campaign.classBusiness")}</option>
+                    <option value="FIRST">{t("campaign.classFirst")}</option>
                   </select>
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Special requirements{" "}
-                  <span className="text-gray-400 font-normal">(optional)</span>
+                  {t("campaign.bookSpecial")}{" "}
+                  <span className="text-gray-400 font-normal">({t("campaign.bookSpecialOptional")})</span>
                 </label>
                 <textarea
                   name="specialRequirements"
                   rows={3}
                   defaultValue={userBooking?.specialRequirements ?? ""}
-                  placeholder="Dietary needs, accessibility, etc."
+                  placeholder={t("campaign.bookSpecialPlaceholder")}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
@@ -426,16 +458,15 @@ export default function CampaignDetailPage() {
                 className="w-full py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50 transition-colors"
               >
                 {isSubmitting
-                  ? "Saving…"
+                  ? t("campaign.bookSaving")
                   : userBooking
-                  ? "Update booking"
-                  : "Request booking"}
+                  ? t("campaign.bookUpdateBtn")
+                  : t("campaign.bookRequestBtn")}
               </button>
 
               {userBooking && (
                 <p className="text-center text-xs text-gray-400">
-                  Status:{" "}
-                  <span className="font-medium text-gray-600">{userBooking.status}</span>
+                  {t("campaign.bookStatus", { status: userBooking.status })}
                 </p>
               )}
             </Form>
@@ -445,42 +476,29 @@ export default function CampaignDetailPage() {
         {/* ── Cargo request ────────────────────────────────────── */}
         {user && user.role === "BUSINESS" && (
           <section id="cargo" className="bg-white rounded-2xl border border-gray-100 p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-1">Cargo request</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-1">{t("campaign.cargoTitle")}</h2>
             {campaign.cargoRatePerKg && (
               <p className="text-sm text-gray-500 mb-1">
-                Rate: <span className="font-semibold text-gray-700">{formatAud(campaign.cargoRatePerKg)}/kg</span>
+                {t("campaign.cargoRate", { rate: formatAud(campaign.cargoRatePerKg) })}
               </p>
             )}
-            <p className="text-sm text-gray-500 mb-5">
-              Submit your cargo details. The admin will review and approve your request.
-            </p>
+            <p className="text-sm text-gray-500 mb-5">{t("campaign.cargoDesc")}</p>
 
             {userCargo ? (
               <div className="rounded-xl bg-gray-50 border border-gray-200 p-4 space-y-2 text-sm">
-                <p className="font-medium text-gray-900">Cargo request submitted</p>
+                <p className="font-medium text-gray-900">{t("campaign.cargoSubmitted")}</p>
                 <p className="text-gray-600">
                   {userCargo.businessName} · {userCargo.weightKg}kg · {userCargo.cargoType}
                 </p>
                 <p>
-                  Status:{" "}
-                  <span
-                    className={`font-medium ${
-                      userCargo.status === "APPROVED"
-                        ? "text-green-700"
-                        : userCargo.status === "REJECTED"
-                        ? "text-red-600"
-                        : "text-yellow-700"
-                    }`}
-                  >
-                    {userCargo.status}
-                  </span>
+                  {t("campaign.cargoStatus", { status: userCargo.status })}
                 </p>
                 {userCargo.adminNotes && (
-                  <p className="text-gray-500 italic">Note: {userCargo.adminNotes}</p>
+                  <p className="text-gray-500 italic">{t("campaign.cargoNote", { note: userCargo.adminNotes })}</p>
                 )}
                 {campaign.cargoRatePerKg && userCargo.status === "APPROVED" && (
                   <p className="font-semibold text-gray-900">
-                    Your cargo cost: {formatAud(userCargo.weightKg * campaign.cargoRatePerKg)}
+                    {t("campaign.cargoCost", { amount: formatAud(userCargo.weightKg * campaign.cargoRatePerKg) })}
                   </p>
                 )}
               </div>
@@ -497,7 +515,7 @@ export default function CampaignDetailPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Business name
+                        {t("campaign.cargoBusinessName")}
                       </label>
                       <input
                         name="businessName"
@@ -509,7 +527,7 @@ export default function CampaignDetailPage() {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Weight (kg)
+                        {t("campaign.cargoWeight")}
                       </label>
                       <input
                         name="weightKg"
@@ -523,7 +541,8 @@ export default function CampaignDetailPage() {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Volume (m³) <span className="text-gray-400 font-normal">optional</span>
+                        {t("campaign.cargoVolume")}{" "}
+                        <span className="text-gray-400 font-normal">({t("campaign.cargoVolumeOptional")})</span>
                       </label>
                       <input
                         name="volumeM3"
@@ -536,12 +555,12 @@ export default function CampaignDetailPage() {
 
                     <div className="col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Cargo type
+                        {t("campaign.cargoType")}
                       </label>
                       <input
                         name="cargoType"
                         type="text"
-                        placeholder="e.g. Wine, machinery parts, clothing"
+                        placeholder={t("campaign.cargoTypePlaceholder")}
                         required
                         className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                       />
@@ -549,13 +568,13 @@ export default function CampaignDetailPage() {
 
                     <div className="col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Description
+                        {t("campaign.cargoDescription")}
                       </label>
                       <textarea
                         name="description"
                         rows={3}
                         required
-                        placeholder="Describe your cargo, any special handling requirements, etc."
+                        placeholder={t("campaign.cargoDescPlaceholder")}
                         className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                       />
                     </div>
@@ -566,7 +585,7 @@ export default function CampaignDetailPage() {
                     disabled={isSubmitting}
                     className="w-full py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50 transition-colors"
                   >
-                    {isSubmitting ? "Submitting…" : "Submit cargo request"}
+                    {isSubmitting ? t("campaign.cargoSubmitting") : t("campaign.cargoSubmitBtn")}
                   </button>
                 </Form>
               </>
@@ -586,40 +605,18 @@ export default function CampaignDetailPage() {
                 to="/register"
                 className="px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg"
               >
-                Get started
+                {t("nav.getStarted")}
               </Link>
               <Link
                 to="/login"
                 className="px-5 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg"
               >
-                Sign in
+                {t("nav.signIn")}
               </Link>
             </div>
           </div>
         )}
       </main>
     </div>
-  );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    VOTING: "bg-green-100 text-green-800",
-    CLOSED: "bg-yellow-100 text-yellow-800",
-    CONFIRMED: "bg-blue-100 text-blue-800",
-    CANCELLED: "bg-red-100 text-red-800",
-    DRAFT: "bg-gray-100 text-gray-600",
-  };
-  const labels: Record<string, string> = {
-    VOTING: "Voting open",
-    CLOSED: "Voting closed",
-    CONFIRMED: "Confirmed",
-    CANCELLED: "Cancelled",
-    DRAFT: "Draft",
-  };
-  return (
-    <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${map[status] ?? "bg-gray-100 text-gray-600"}`}>
-      {labels[status] ?? status}
-    </span>
   );
 }

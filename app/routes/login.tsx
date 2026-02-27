@@ -1,4 +1,5 @@
 import { data, redirect, Form, Link, useActionData, useSearchParams } from "react-router";
+import { useTranslation } from "react-i18next";
 import { loginUser } from "~/auth.server";
 import { createUserSession, getUserId } from "~/session.server";
 import type { Route } from "./+types/login";
@@ -28,20 +29,23 @@ export async function action({ request }: Route.ActionArgs) {
   return createUserSession({ request, userId: result.user.id, redirectTo });
 }
 
+export const handle = { i18n: "translation" };
+
 export default function LoginPage() {
   const actionData = useActionData<typeof action>();
   const [searchParams] = useSearchParams();
   const redirectTo = searchParams.get("redirectTo") ?? "/";
+  const { t } = useTranslation();
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900">Welcome back</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{t("login.title")}</h1>
           <p className="mt-2 text-sm text-gray-600">
-            No account?{" "}
+            {t("login.noAccount")}{" "}
             <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500">
-              Sign up
+              {t("login.signUp")}
             </Link>
           </p>
         </div>
@@ -52,7 +56,7 @@ export default function LoginPage() {
           <div className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email
+                {t("login.email")}
               </label>
               <input
                 id="email"
@@ -69,7 +73,7 @@ export default function LoginPage() {
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
+                {t("login.password")}
               </label>
               <input
                 id="password"
@@ -89,7 +93,7 @@ export default function LoginPage() {
             type="submit"
             className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
-            Sign in
+            {t("login.signIn")}
           </button>
         </Form>
       </div>

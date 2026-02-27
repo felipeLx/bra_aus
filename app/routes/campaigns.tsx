@@ -1,4 +1,5 @@
 import { Link, useLoaderData } from "react-router";
+import { useTranslation } from "react-i18next";
 import { Navbar } from "~/components/Navbar";
 import { db } from "~/db.server";
 import { calculatePricing, formatAud } from "~/lib/pricing";
@@ -26,30 +27,31 @@ export async function loader({ request }: Route.LoaderArgs) {
   return { user, campaigns };
 }
 
-const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  VOTING: { label: "Voting open", color: "bg-green-100 text-green-800" },
-  CLOSED: { label: "Voting closed", color: "bg-yellow-100 text-yellow-800" },
-  CONFIRMED: { label: "Confirmed", color: "bg-blue-100 text-blue-800" },
-  CANCELLED: { label: "Cancelled", color: "bg-red-100 text-red-800" },
-};
+export const handle = { i18n: "translation" };
 
 export default function CampaignsPage() {
   const { user, campaigns } = useLoaderData<typeof loader>();
+  const { t } = useTranslation();
+
+  const STATUS_LABELS: Record<string, { label: string; color: string }> = {
+    VOTING:    { label: t("campaigns.statusVoting"),    color: "bg-green-100 text-green-800" },
+    CLOSED:    { label: t("campaigns.statusClosed"),    color: "bg-yellow-100 text-yellow-800" },
+    CONFIRMED: { label: t("campaigns.statusConfirmed"), color: "bg-blue-100 text-blue-800" },
+    CANCELLED: { label: t("campaigns.statusCancelled"), color: "bg-red-100 text-red-800" },
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar user={user} />
 
       <main className="max-w-4xl mx-auto px-6 py-12">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Open campaigns</h1>
-        <p className="text-gray-500 mb-8">
-          Vote on your preferred date, book your seat, and share the cost with everyone.
-        </p>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">{t("campaigns.title")}</h1>
+        <p className="text-gray-500 mb-8">{t("campaigns.subtitle")}</p>
 
         {campaigns.length === 0 ? (
           <div className="text-center py-20 text-gray-400">
-            <p className="text-lg">No campaigns open yet.</p>
-            <p className="text-sm mt-1">Check back soon.</p>
+            <p className="text-lg">{t("campaigns.empty")}</p>
+            <p className="text-sm mt-1">{t("campaigns.emptySub")}</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -76,11 +78,12 @@ export default function CampaignsPage() {
                         <p className="text-sm text-gray-500 mt-1 line-clamp-2">{campaign.description}</p>
                       )}
                       <p className="text-xs text-gray-400 mt-2">
-                        Voting ends{" "}
-                        {new Date(campaign.votingEndsAt).toLocaleDateString("en-AU", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
+                        {t("campaigns.votingEnds", {
+                          date: new Date(campaign.votingEndsAt).toLocaleDateString("en-AU", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          }),
                         })}
                       </p>
                     </div>
@@ -91,23 +94,22 @@ export default function CampaignsPage() {
                           <p className="text-2xl font-bold text-blue-600">
                             {formatAud(pricing.pricePerPerson)}
                           </p>
-                          <p className="text-xs text-gray-400">per person now</p>
+                          <p className="text-xs text-gray-400">{t("campaigns.perPersonNow")}</p>
                         </>
                       ) : pricing.bestCasePrice != null ? (
                         <>
                           <p className="text-2xl font-bold text-gray-400">
                             {formatAud(pricing.bestCasePrice)}
                           </p>
-                          <p className="text-xs text-gray-400">if full plane</p>
+                          <p className="text-xs text-gray-400">{t("campaigns.ifFullPlane")}</p>
                         </>
                       ) : (
-                        <p className="text-sm text-gray-400">Pricing TBD</p>
+                        <p className="text-sm text-gray-400">{t("campaigns.pricingTbd")}</p>
                       )}
                       <p className="text-xs text-gray-400 mt-1">
-                        {pricing.activePassengers} booking
-                        {pricing.activePassengers !== 1 ? "s" : ""}
+                        {t("campaigns.bookings", { count: pricing.activePassengers })}
                         {" · "}
-                        {campaign._count.votes} vote{campaign._count.votes !== 1 ? "s" : ""}
+                        {t("campaigns.votes", { count: campaign._count.votes })}
                       </p>
                     </div>
                   </div>
@@ -116,7 +118,12 @@ export default function CampaignsPage() {
                   {pricing.seatsFillPercent != null && (
                     <div className="mt-4">
                       <div className="flex justify-between text-xs text-gray-400 mb-1">
-                        <span>{pricing.activePassengers} of {pricing.seatsTotal} seats filled</span>
+                        <span>
+                          {t("campaigns.seatsFilled", {
+                            active: pricing.activePassengers,
+                            total: pricing.seatsTotal,
+                          })}
+                        </span>
                         <span>{Math.round(pricing.seatsFillPercent)}%</span>
                       </div>
                       <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">

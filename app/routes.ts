@@ -15,6 +15,9 @@ export default [
   // User dashboard
   route("dashboard", "routes/dashboard.tsx"),
 
+  // Locale switcher
+  route("locale", "routes/locale.tsx"),
+
   // Admin
   route("admin", "routes/admin._index.tsx"),
   route("admin/campaigns/new", "routes/admin.campaigns.new.tsx"),

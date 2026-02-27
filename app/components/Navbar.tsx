@@ -1,4 +1,5 @@
 import { Form, Link, useLocation } from "react-router";
+import { useTranslation } from "react-i18next";
 
 type NavUser = {
   name: string;
@@ -7,6 +8,8 @@ type NavUser = {
 
 export function Navbar({ user }: { user: NavUser }) {
   const location = useLocation();
+  const { t, i18n } = useTranslation();
+  const lng = i18n.language;
 
   const navLink = (to: string, label: string) => {
     const active = location.pathname === to || location.pathname.startsWith(to + "/");
@@ -35,13 +38,42 @@ export function Navbar({ user }: { user: NavUser }) {
 
         {/* Centre links */}
         <div className="flex items-center gap-6">
-          {navLink("/campaigns", "Campaigns")}
-          {user && navLink("/dashboard", "My trips")}
-          {user?.role === "ADMIN" && navLink("/admin", "Admin")}
+          {navLink("/campaigns", t("nav.campaigns"))}
+          {user && navLink("/dashboard", t("nav.myTrips"))}
+          {user?.role === "ADMIN" && navLink("/admin", t("nav.admin"))}
         </div>
 
         {/* Right side */}
         <div className="flex items-center gap-3 shrink-0">
+          {/* Language switcher */}
+          <Form method="post" action="/locale" className="flex items-center gap-0.5">
+            <input type="hidden" name="redirectTo" value={location.pathname} />
+            <button
+              name="lng"
+              value="en"
+              type="submit"
+              className={`text-xs px-2 py-1 rounded transition-colors ${
+                lng === "en"
+                  ? "bg-blue-100 text-blue-700 font-semibold"
+                  : "text-gray-400 hover:text-gray-700"
+              }`}
+            >
+              EN
+            </button>
+            <button
+              name="lng"
+              value="pt-BR"
+              type="submit"
+              className={`text-xs px-2 py-1 rounded transition-colors ${
+                lng === "pt-BR"
+                  ? "bg-blue-100 text-blue-700 font-semibold"
+                  : "text-gray-400 hover:text-gray-700"
+              }`}
+            >
+              PT
+            </button>
+          </Form>
+
           {user ? (
             <>
               <span className="hidden sm:block text-sm text-gray-500">{user.name}</span>
@@ -50,7 +82,7 @@ export function Navbar({ user }: { user: NavUser }) {
                   type="submit"
                   className="text-sm text-gray-500 hover:text-gray-900 transition-colors"
                 >
-                  Sign out
+                  {t("nav.signOut")}
                 </button>
               </Form>
             </>
@@ -60,13 +92,13 @@ export function Navbar({ user }: { user: NavUser }) {
                 to="/login"
                 className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
               >
-                Sign in
+                {t("nav.signIn")}
               </Link>
               <Link
                 to="/register"
                 className="text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 px-4 py-1.5 rounded-full transition-colors"
               >
-                Get started
+                {t("nav.getStarted")}
               </Link>
             </>
           )}

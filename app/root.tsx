@@ -5,7 +5,12 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  useLoaderData,
+  useRouteLoaderData,
 } from "react-router";
+import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
+import { remixI18Next } from "~/i18next.server";
 
 import type { Route } from "./+types/root";
 import "./app.css";
@@ -23,9 +28,17 @@ export const links: Route.LinksFunction = () => [
   },
 ];
 
+export async function loader({ request }: Route.LoaderArgs) {
+  const locale = await remixI18Next.getLocale(request);
+  return { locale };
+}
+
 export function Layout({ children }: { children: React.ReactNode }) {
+  const data = useRouteLoaderData<typeof loader>("root");
+  const locale = data?.locale ?? "en";
+
   return (
-    <html lang="en">
+    <html lang={locale}>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -42,23 +55,34 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  const { locale } = useLoaderData<typeof loader>();
+  const { i18n } = useTranslation();
+
+  useEffect(() => {
+    if (i18n.language !== locale) {
+      i18n.changeLanguage(locale);
+    }
+  }, [locale, i18n]);
+
   return <Outlet />;
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  const { t } = useTranslation();
+
   let status = 500;
-  let title = "Something went wrong";
-  let message = "An unexpected error occurred. Please try again.";
+  let title = t("error.500title");
+  let message = t("error.500desc");
   let stack: string | undefined;
 
   if (isRouteErrorResponse(error)) {
     status = error.status;
     if (error.status === 404) {
-      title = "Page not found";
-      message = "The page you're looking for doesn't exist or has been moved.";
+      title = t("error.404title");
+      message = t("error.404desc");
     } else if (error.status === 403) {
-      title = "Access denied";
-      message = "You don't have permission to view this page.";
+      title = t("error.403title");
+      message = t("error.403desc");
     } else {
       message = error.statusText || message;
     }
@@ -78,13 +102,13 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
             href="/"
             className="px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors"
           >
-            Go home
+            {t("error.goHome")}
           </a>
           <a
             href="/campaigns"
             className="px-5 py-2.5 text-sm font-semibold text-gray-700 bg-white border border-gray-200 hover:border-gray-300 rounded-xl transition-colors"
           >
-            View campaigns
+            {t("error.viewCampaigns")}
           </a>
         </div>
         {stack && (
