@@ -4,7 +4,7 @@
 # ⚠️  Update `app` to match your Fly.io app name exactly.
 #     Run `fly apps list` to check.
 
-app = "rio-aus-flights"   # ← update this
+app = "bra-aus"   # ← update this
 primary_region = "syd"    # Sydney — closest to your users
 
 [build]
