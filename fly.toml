@@ -6,7 +6,10 @@ primary_region = "syd"    # Sydney — closest to your users
 # Runs in the new container BEFORE traffic is switched over.
 # Applies any pending DB migrations safely.
 [deploy]
-  release_command = "bun prisma migrate deploy"
+# Temporarily disable automatic migrations during release so the first
+# deploy can create machines and receive staged secrets. Run migrations
+# manually once secrets are deployed, then revert this.
+  release_command = "true"
 
 [env]
   NODE_ENV = "production"
