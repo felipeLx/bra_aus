@@ -7,9 +7,13 @@
 
 html,
 body {
-  @apply bg-white dark:bg-gray-950;
+  @apply bg-white;
+}
 
-  @media (prefers-color-scheme: dark) {
-    color-scheme: dark;
-  }
+/* Ensure form controls always have readable dark text regardless of OS colour scheme */
+input,
+textarea,
+select {
+  @apply text-gray-900;
+  color-scheme: light;
 }

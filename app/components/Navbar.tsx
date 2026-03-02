@@ -40,7 +40,18 @@ export function Navbar({ user }: { user: NavUser }) {
         <div className="flex items-center gap-6">
           {navLink("/campaigns", t("nav.campaigns"))}
           {user && navLink("/dashboard", t("nav.myTrips"))}
-          {user?.role === "ADMIN" && navLink("/admin", t("nav.admin"))}
+          {user?.role === "ADMIN" && (
+            <Link
+              to="/admin"
+              className={`text-sm font-semibold transition-colors ${
+                location.pathname.startsWith("/admin")
+                  ? "text-orange-600"
+                  : "text-orange-500 hover:text-orange-700"
+              }`}
+            >
+              {t("nav.admin")}
+            </Link>
+          )}
         </div>
 
         {/* Right side */}
