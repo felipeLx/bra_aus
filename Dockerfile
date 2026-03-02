@@ -8,8 +8,8 @@ RUN bun install --frozen-lockfile
 FROM deps AS builder
 WORKDIR /app
 COPY . .
-ENV DIRECT_URL="postgresql://postgres:YqMnldnyM1Qa43mH@db.wtqggazeuxnoeonwgtam.supabase.co:5432/postgres"
-ENV DATABASE_URL="postgresql://postgres:YqMnldnyM1Qa43mH@db.wtqggazeuxnoeonwgtam.supabase.co:5432/postgres"
+ENV DIRECT_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
+ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
 
 # Generate Prisma client before building (requires env var resolution)
 RUN bun prisma generate
@@ -38,4 +38,4 @@ COPY package.json ./
 
 EXPOSE 8080
 
-CMD ["node", "./node_modules/.bin/react-router-serve", "./build/server/index.js"]
+CMD ["npm", "run", "start"]
