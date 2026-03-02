@@ -1,22 +1,37 @@
-FROM node:20-alpine AS development-dependencies-env
-COPY . /app
+# ─── Stage 1: install dependencies ────────────────────────────
+FROM oven/bun:1 AS deps
 WORKDIR /app
-RUN npm ci
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 
-FROM node:20-alpine AS production-dependencies-env
-COPY ./package.json package-lock.json /app/
+# ─── Stage 2: build ────────────────────────────────────────────
+FROM deps AS builder
 WORKDIR /app
-RUN npm ci --omit=dev
+COPY . .
+# Generate Prisma client before building
+RUN bun prisma generate
+RUN bun run build
 
-FROM node:20-alpine AS build-env
-COPY . /app/
-COPY --from=development-dependencies-env /app/node_modules /app/node_modules
+# ─── Stage 3: production image ─────────────────────────────────
+FROM oven/bun:1-slim AS runner
 WORKDIR /app
-RUN npm run build
+ENV NODE_ENV=production
 
-FROM node:20-alpine
-COPY ./package.json package-lock.json /app/
-COPY --from=production-dependencies-env /app/node_modules /app/node_modules
-COPY --from=build-env /app/build /app/build
-WORKDIR /app
-CMD ["npm", "run", "start"]
+# App server bundle
+COPY --from=builder /app/build ./build
+
+# i18n locale files (read from filesystem by i18next-fs-backend at runtime)
+COPY --from=builder /app/public ./public
+
+# Prisma: generated client + schema + migrations (needed for release command)
+COPY --from=builder /app/generated ./generated
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
+
+# Runtime dependencies only
+COPY --from=deps /app/node_modules ./node_modules
+COPY package.json ./
+
+EXPOSE 8080
+
+CMD ["bun", "run", "start"]
