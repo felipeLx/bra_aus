@@ -9,7 +9,7 @@ primary_region = "syd"    # Sydney — closest to your users
 # Temporarily disable automatic migrations during release so the first
 # deploy can create machines and receive staged secrets. Run migrations
 # manually once secrets are deployed, then revert this.
-  release_command = "true"
+  release_command = "./node_modules/.bin/prisma migrate deploy"
 
 [env]
   NODE_ENV = "production"

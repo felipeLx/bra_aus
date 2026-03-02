@@ -16,7 +16,9 @@ RUN bun prisma generate
 RUN bun run build
 
 # ─── Stage 3: production image ─────────────────────────────────
-FROM oven/bun:1-slim AS runner
+# Use Node.js (not Bun) at runtime: Bun intercepts react-dom/server
+# and swaps it for server.bun.js which lacks renderToPipeableStream.
+FROM node:22-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 
@@ -36,4 +38,4 @@ COPY package.json ./
 
 EXPOSE 8080
 
-CMD ["bun", "run", "start"]
+CMD ["node", "./node_modules/.bin/react-router-serve", "./build/server/index.js"]
