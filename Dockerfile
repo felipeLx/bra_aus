@@ -8,7 +8,10 @@ RUN bun install --frozen-lockfile
 FROM deps AS builder
 WORKDIR /app
 COPY . .
-# Generate Prisma client before building
+ENV DIRECT_URL="postgresql://postgres:YqMnldnyM1Qa43mH@db.wtqggazeuxnoeonwgtam.supabase.co:5432/postgres"
+ENV DATABASE_URL="postgresql://postgres:YqMnldnyM1Qa43mH@db.wtqggazeuxnoeonwgtam.supabase.co:5432/postgres"
+
+# Generate Prisma client before building (requires env var resolution)
 RUN bun prisma generate
 RUN bun run build
 
@@ -23,10 +26,9 @@ COPY --from=builder /app/build ./build
 # i18n locale files (read from filesystem by i18next-fs-backend at runtime)
 COPY --from=builder /app/public ./public
 
-# Prisma: generated client + schema + migrations (needed for release command)
-COPY --from=builder /app/generated ./generated
+# Prisma schema + migrations (client generated in build)
 COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
+COPY --from=builder /app/generated ./generated
 
 # Runtime dependencies only
 COPY --from=deps /app/node_modules ./node_modules

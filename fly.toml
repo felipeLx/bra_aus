@@ -1,10 +1,4 @@
-# fly.toml — Rio-Aus Flights
-# https://fly.io/docs/reference/configuration/
-#
-# ⚠️  Update `app` to match your Fly.io app name exactly.
-#     Run `fly apps list` to check.
-
-app = "bra-aus"   # ← update this
+app = "bra-aus"   
 primary_region = "syd"    # Sydney — closest to your users
 
 [build]
