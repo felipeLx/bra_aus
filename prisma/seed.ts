@@ -6,7 +6,7 @@ const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
 const db = new PrismaClient({ adapter });
 
 async function main() {
-  const adminEmail = process.env.SEED_ADMIN_EMAIL ?? "admin@rioaus.com";
+  const adminEmail = process.env.SEED_ADMIN_EMAIL ?? "felipealisboa@outlook.com";
   const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? "changeme123";
 
   const existing = await db.user.findUnique({ where: { email: adminEmail } });
